@@ -1,0 +1,21 @@
+{
+  "id": "example.section-tools",
+  "name": "Section Tools",
+  "version": "1.0.0",
+  "minAppVersion": "2.2.2",
+  "description": "Example package: count the words in a section and add a note to a section.",
+  "author": "Document Node Pty Ltd",
+  "products": ["marknode"],
+  "permissions": ["doc.read", "doc.write"],
+  "contributes": {
+    "commands": [
+      { "id": "count-words", "title": "Count words in section", "script": "scripts/count-words.js" },
+      { "id": "add-note", "title": "Add note to section", "script": "scripts/add-note.js" }
+    ],
+    "menus": {
+      "editor/slash": ["count-words", "add-note"],
+      "outline/node": ["count-words", "add-note"],
+      "mindmap/node": ["count-words", "add-note"]
+    }
+  }
+}
