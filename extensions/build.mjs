@@ -59,6 +59,8 @@ for (const { entryPath, outputPath, banner } of listBuildJobs()) {
   await build({
     entryPoints: [entryPath],
     outfile: outputPath,
+    // Source-path comments in the output are relative to this directory, not process.cwd().
+    absWorkingDir: extensionsDir,
     bundle: true,
     format: 'esm',
     platform: 'neutral',

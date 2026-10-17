@@ -43,31 +43,19 @@ export interface OutlineViewNode {
 }
 
 /** The result of `doc.outline`. */
-export interface Outline {
+export interface OutlineResult {
   nodes: OutlineViewNode[];
   version: string;
 }
 
 /** The result of `doc.readSection`. */
-export interface ReadSection {
+export interface ReadSectionResult {
   markdown: string;
   version: string;
 }
 
 /** The result of `doc.insert`. */
-export interface Insert {
-  indexPath?: string | null;
-  version: string;
-}
-
-/** The result of `doc.replaceSection`. */
-export interface ReplaceSection {
-  indexPath?: string | null;
-  version: string;
-}
-
-/** The result of `doc.applyTemplate`. */
-export interface ApplyTemplate {
+export interface WriteResult {
   indexPath?: string | null;
   version: string;
 }
@@ -77,29 +65,29 @@ export interface Doc {
   /**
    * Reads the document; needs the `doc.read` permission.
    */
-  outline(): Outline;
+  outline(): OutlineResult;
 
   /**
    * Reads the document; needs the `doc.read` permission.
    */
-  readSection(node?: NodeHandle): ReadSection;
+  readSection(node?: NodeHandle): ReadSectionResult;
 
   /**
    * Changes the document; needs the `doc.write` permission.
    */
-  insert(node: WriteNodeHandle, position: InsertPosition, markdown: string): Insert;
+  insert(node: WriteNodeHandle, position: InsertPosition, markdown: string): WriteResult;
 
   /**
    * Changes the document; needs the `doc.write` permission.
    */
-  replaceSection(node: WriteNodeHandle, markdown: string): ReplaceSection;
+  replaceSection(node: WriteNodeHandle, markdown: string): WriteResult;
 
   /**
    * Changes the document; needs the `doc.write` permission.
    * @param name The template's name in the user's template library.
    * @param values Values for the template's user fields, by field name.
    */
-  applyTemplate(node: WriteNodeHandle, name: string, values: Record<string, string> | undefined, position: InsertPosition): ApplyTemplate;
+  applyTemplate(node: WriteNodeHandle, name: string, values: Record<string, string> | undefined, position: InsertPosition): WriteResult;
 }
 
 /** One field of a `ui.prompt` form. */
