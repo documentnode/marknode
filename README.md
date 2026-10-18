@@ -14,9 +14,8 @@ in this repository.
 
 ## Issues and support
 
-MarkNode issues are tracked in
-**[documentnode/marknode-issues](https://github.com/documentnode/marknode-issues)**. Bug reports,
-feature requests and questions are welcome there.
+Report bugs, request features, and ask questions in
+[this repository’s Issues](https://github.com/documentnode/marknode/issues).
 
 - **Security vulnerability?** Do not open an issue — see [SECURITY.md](SECURITY.md).
 - For account, billing, or licence questions, email
