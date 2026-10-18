@@ -1,14 +1,10 @@
-import type { Context, OutlineViewNode } from 'marknode';
+import type { Context, RenderedHeading } from 'marknode';
 
 function markdownLabel(plainText: string): string {
   return plainText.replace(/[!"#$%&'()*+\-,./:;<=>?@[\\\]^_`{|}~]/gu, '\\$&');
 }
 
-function headingsInDocumentOrder(nodes: readonly OutlineViewNode[]): OutlineViewNode[] {
-  return nodes.flatMap((node) => [...(node.kind === 'heading' ? [node] : []), ...headingsInDocumentOrder(node.children)]);
-}
-
-export function tableOfContentsMarkdown(headings: readonly OutlineViewNode[]): string {
+export function tableOfContentsMarkdown(headings: readonly RenderedHeading[]): string {
   const levels: number[] = [];
   return headings.map((heading) => {
     if (heading.plainText == null || heading.anchor == null) throw new Error('MarkNode did not provide rendered heading metadata.');
@@ -21,7 +17,7 @@ export function tableOfContentsMarkdown(headings: readonly OutlineViewNode[]): s
 
 export default async function addTableOfContents({ doc }: Context): Promise<void> {
   const outline = doc.outline();
-  const headings = headingsInDocumentOrder(outline.nodes);
+  const headings = outline.headings;
   if (headings.length === 0) return;
   const toc = tableOfContentsMarkdown(headings);
   const source = doc.readSection().markdown;

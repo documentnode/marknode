@@ -44,8 +44,22 @@ export interface OutlineViewNode {
   title: string;
 }
 
+/** All rendered headings in source order, including headings inside lists, quotes and footnotes that are not individually addressable outline nodes. */
+export interface RenderedHeading {
+  anchor: string;
+  /** Zero-based UTF-16 column of the heading start in its original source line. */
+  column: number;
+  /** Exclusive source end line, including a setext underline when present. */
+  endLine: number;
+  level: number;
+  /** Zero-based source start line. */
+  line: number;
+  plainText: string;
+}
+
 /** The result of `doc.outline`. */
 export interface OutlineResult {
+  headings: RenderedHeading[];
   nodes: OutlineViewNode[];
   version: string;
 }

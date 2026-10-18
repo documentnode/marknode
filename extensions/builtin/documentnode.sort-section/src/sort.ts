@@ -3,7 +3,7 @@ import type { Context, OutlineViewNode } from 'marknode';
 
 const markdown = new MarkdownIt('commonmark', { html: true });
 
-interface SourceRange { end: number; start: number; }
+interface SourceRange { end: number; start: number; followsParagraph?: boolean; }
 interface CandidateRange extends SourceRange { kind: OutlineViewNode['kind']; }
 
 function compareTitles(left: string, right: string): number {
@@ -21,17 +21,35 @@ function lineOffsets(source: string): number[] {
 function sourceCandidates(source: string): CandidateRange[] {
   const offsets = lineOffsets(source);
   const tokens = markdown.parse(source, {});
-  const headings = tokens.flatMap((token, index) => token.type === 'heading_open' && token.map !== null
-    ? [{ index, level: Number(token.tag.slice(1)), startLine: token.map[0] }] : []);
   const candidates: CandidateRange[] = [];
-  for (const heading of headings) {
-    const next = headings.slice(headings.indexOf(heading) + 1).find((candidate) => candidate.level <= heading.level);
-    candidates.push({ kind: 'heading', start: offsets[heading.startLine], end: next === undefined ? source.length : offsets[next.startLine] });
-  }
-  for (const token of tokens) {
-    if (token.type !== 'list_item_open' || token.map === null) continue;
-    const line = source.slice(offsets[token.map[0]], offsets[token.map[0] + 1]).trimStart();
-    candidates.push({ kind: /^\d+[.)]\s/u.test(line) ? 'ordered' : 'bullet', start: offsets[token.map[0]], end: offsets[token.map[1]] ?? source.length });
+  const ancestors: { type: string; included: boolean }[] = [];
+  const openHeadings: { level: number; range: CandidateRange }[] = [];
+  for (const [index, token] of tokens.entries()) {
+    if (token.nesting === -1) { ancestors.pop(); continue; }
+    const parent = ancestors[ancestors.length - 1];
+    // Native outline traversal visits only direct List children of an Item.
+    // Headings and blockquotes inside items remain part of that item's body.
+    const included = parent === undefined || (parent.included && (parent.type !== 'list_item_open'
+      || token.type === 'bullet_list_open' || token.type === 'ordered_list_open'));
+    if (token.nesting === 1) ancestors.push({ type: token.type, included });
+    if (!included || token.map === null) continue;
+    if (token.type === 'heading_open') {
+      const level = Number(token.tag.slice(1));
+      const start = offsets[token.map[0]];
+      // Each heading enters and leaves the stack once, including flat outlines.
+      while (openHeadings.length > 0 && openHeadings[openHeadings.length - 1].level >= level) {
+        openHeadings.pop()!.range.end = start;
+      }
+      const range: CandidateRange = { kind: 'heading', start, end: source.length };
+      openHeadings.push({ level, range });
+      candidates.push(range);
+    } else if (token.type === 'list_item_open') {
+      candidates.push({
+        kind: parent?.type === 'ordered_list_open' ? 'ordered' : 'bullet',
+        start: offsets[token.map[0]], end: offsets[token.map[1]] ?? source.length,
+        followsParagraph: tokens[index - 1]?.type === 'ordered_list_open' && tokens[index - 2]?.type === 'paragraph_close',
+      });
+    }
   }
   return candidates.sort((left, right) => left.start - right.start || right.end - left.end);
 }
@@ -68,17 +86,29 @@ function findNode(nodes: readonly OutlineViewNode[], indexPath: string): Outline
 export function sortChildRanges(source: string, children: readonly OutlineViewNode[], ranges: ReadonlyMap<string, SourceRange>): string | null {
   const sections = children.map((node, index) => {
     const range = ranges.get(node.indexPath);
-    return range === undefined ? null : { index, range, title: node.title };
+    if (range === undefined) return null;
+    const text = source.slice(range.start, range.end);
+    // A boundary belongs to its source slot, not to the section moved out of it.
+    // In particular, a section at EOF may have no newline of its own.
+    const separator = text.match(/(?:\r?\n[ \t]*)+$/u)?.[0] ?? '';
+    return { index, range, title: node.title, content: text.slice(0, text.length - separator.length), separator };
   });
   if (sections.some((section) => section === null)) return null;
-  const present = sections as { index: number; range: SourceRange; title: string }[];
+  const present = sections as { index: number; range: SourceRange; title: string; content: string; separator: string }[];
   const sorted = present.slice().sort((left, right) => compareTitles(left.title, right.title) || left.index - right.index);
   if (sorted.every((section, index) => section === present[index])) return source;
   let cursor = 0; let result = '';
   for (const [index, section] of present.entries()) {
     result += source.slice(cursor, section.range.start);
-    const replacement = sorted[index].range;
-    result += source.slice(replacement.start, replacement.end);
+    const content = sorted[index].content;
+    const orderedStart = content.match(/^((?:[ \t]{0,3}>[ \t]?)*)([ \t]*)(\d+)[.)](?:[ \t]+|$)/u);
+    // Only an ordered marker starting at 1 can interrupt a paragraph. A moved
+    // later item needs a blank line here; keep its marker width and body indent.
+    if (section.range.followsParagraph && orderedStart !== null && Number(orderedStart[3]) !== 1
+      && result.length > 0 && !/\r?\n(?:[ \t]*>[ \t]*)*\r?\n[ \t]*$/u.test(result)) {
+      result += orderedStart[1].trimEnd() + (source.includes('\r\n') ? '\r\n' : '\n');
+    }
+    result += content + section.separator;
     cursor = section.range.end;
   }
   return result + source.slice(cursor);

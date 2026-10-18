@@ -2,7 +2,7 @@ import MarkdownIt from 'markdown-it';
 import type { Context, OutlineViewNode } from 'marknode';
 
 interface SourceRange { end: number; start: number; }
-interface ListItem extends SourceRange { children: ListItem[]; endLine: number; startLine: number; title: string; }
+interface ListItem extends SourceRange { children: ListItem[]; endLine: number; startLine: number; title: string; quotePrefix: string; quoteDepth: number; }
 
 const markdown = new MarkdownIt('commonmark', { html: true });
 
@@ -14,16 +14,34 @@ function lineOffsets(source: string): number[] {
 
 function sourceLines(source: string): string[] { return source.match(/[^\n]*(?:\n|$)/gu)?.slice(0, -1) ?? []; }
 function lineWithoutBreak(line: string): string { return line.replace(/\r?\n$/u, ''); }
-function listItemTitle(line: string): string | null { return lineWithoutBreak(line).match(/^\s*(?:[-+*]|\d+[.)])\s+(.*)$/u)?.[1] ?? null; }
+function splitQuotePrefix(line: string, limit = Infinity): { prefix: string; content: string; depth: number } {
+  let prefix = ''; let content = line; let depth = 0;
+  while (depth < limit) {
+    const match = content.match(/^[ \t]{0,3}>[ \t]?/u);
+    if (match === null) break;
+    prefix += match[0]; content = content.slice(match[0].length); depth += 1;
+  }
+  return { prefix, content, depth };
+}
+
+function quotedLine(line: string, prefix: string): string {
+  return prefix + line;
+}
+
+function listItemTitle(line: string): string | null {
+  const match = lineWithoutBreak(line).match(/^[ \t]*(?:[-+*]|\d+[.)])(?:[ \t]+(.*))?$/u);
+  return match === null ? null : match[1] ?? '';
+}
 
 function parseListItems(source: string): ListItem[] {
   const lines = sourceLines(source); const offsets = lineOffsets(source); const roots: ListItem[] = []; const openItems: ListItem[] = [];
   for (const token of markdown.parse(source, {})) {
     if (token.type === 'list_item_open') {
       if (token.map === null) continue;
-      const title = listItemTitle(lines[token.map[0]] ?? '');
-      if (title === null) continue;
-      const item: ListItem = { children: [], end: offsets[token.map[1]] ?? source.length, endLine: token.map[1], start: offsets[token.map[0]] ?? source.length, startLine: token.map[0], title };
+      const quote = splitQuotePrefix(lines[token.map[0]] ?? '');
+      const title = listItemTitle(quote.content);
+      if (title === null) throw new Error('A list item could not be matched to its source. No text was changed.');
+      const item: ListItem = { children: [], end: offsets[token.map[1]] ?? source.length, endLine: token.map[1], start: offsets[token.map[0]] ?? source.length, startLine: token.map[0], title, quotePrefix: quote.prefix, quoteDepth: quote.depth };
       const parent = openItems.at(-1);
       if (parent === undefined) roots.push(item); else parent.children.push(item);
       openItems.push(item);
@@ -40,7 +58,8 @@ function trimBlankLines(lines: readonly string[]): string[] {
 }
 
 function continuationIndentation(line: string): string {
-  return lineWithoutBreak(line).match(/^(\s*(?:[-+*]|\d+[.)])\s+)/u)?.[1] ?? '';
+  const match = lineWithoutBreak(line).match(/^([ \t]*(?:[-+*]|\d+[.)]))([ \t]+|$)/u);
+  return match === null ? '' : match[1] + (match[2] || ' ');
 }
 
 function removeContinuationIndentation(line: string, indentation: string): string {
@@ -54,21 +73,25 @@ function itemBody(item: ListItem, lines: readonly string[]): string {
   const bodyLines: string[] = []; let cursor = item.startLine + 1;
   for (const child of item.children) { bodyLines.push(...lines.slice(cursor, child.startLine)); cursor = child.endLine; }
   bodyLines.push(...lines.slice(cursor, item.endLine));
-  const indentation = continuationIndentation(lines[item.startLine] ?? '');
-  return trimBlankLines(bodyLines.map((line) => removeContinuationIndentation(line, indentation))).join('').replace(/\r?\n$/u, '');
+  const indentation = continuationIndentation(splitQuotePrefix(lines[item.startLine] ?? '', item.quoteDepth).content);
+  // Strip only the item's outer quote containers. Inner quoted body blocks stay
+  // in the content; lazy continuation lines may omit some or all outer markers.
+  const body = bodyLines.map((line) => removeContinuationIndentation(splitQuotePrefix(line, item.quoteDepth).content, indentation));
+  return trimBlankLines(body).map((line) => quotedLine(line, item.quotePrefix)).join('').replace(/\r?\n$/u, '');
 }
 
 function convertItem(item: ListItem, lines: readonly string[], level: number, lineBreak: string): string {
   if (level > 6) throw new Error('A list deeper than six levels cannot be converted to headings.');
   const body = itemBody(item, lines);
   const children = item.children.map((child) => convertItem(child, lines, level + 1, lineBreak));
-  return [`${'#'.repeat(level)} ${item.title}`, body, ...children].filter((part) => part !== '').join(`${lineBreak}${lineBreak}`);
+  return [`${item.quotePrefix}${'#'.repeat(level)} ${item.title}`, body, ...children].filter((part) => part !== '').join(`${lineBreak}${item.quotePrefix.trimEnd()}${lineBreak}`);
 }
 
-function replacementForRange(rendered: string, source: string, range: SourceRange, lineBreak: string): string {
+function replacementForRange(rendered: string, source: string, range: ListItem, lineBreak: string): string {
   let replacement = /\r?\n$/u.test(source.slice(range.start, range.end)) ? `${rendered}${lineBreak}` : rendered;
-  if (/^(?:#{1,6}(?:\s|$)|\s*(?:[-+*]|\d+[.)])\s)/u.test(source.slice(range.end)) && !/(?:\r?\n){2}$/u.test(replacement)) {
-    replacement += lineBreak;
+  const following = splitQuotePrefix(source.slice(range.end)).content;
+  if (/^(?:#{1,6}(?:\s|$)|[ \t]*(?:[-+*]|\d+[.)])(?:\s|$))/u.test(following) && !/\r?\n(?:[ \t]*>[ \t]*)*\r?\n$/u.test(replacement)) {
+    replacement += range.quotePrefix.trimEnd() + lineBreak;
   }
   return replacement;
 }
@@ -84,9 +107,11 @@ function replaceRanges(source: string, replacements: readonly { range: SourceRan
 
 function containingHeadingLevel(source: string, offset: number): number {
   const offsets = lineOffsets(source);
-  let level = 0;
+  let level = 0; let listDepth = 0;
   for (const token of markdown.parse(source, {})) {
-    if (token.type === 'heading_open' && token.map !== null && (offsets[token.map[0]] ?? source.length) < offset) {
+    if (token.type === 'list_item_open') listDepth += 1;
+    if (token.type === 'list_item_close') listDepth -= 1;
+    if (listDepth === 0 && token.type === 'heading_open' && token.map !== null && (offsets[token.map[0]] ?? source.length) < offset) {
       level = Number(token.tag.slice(1));
     }
   }

@@ -25,7 +25,7 @@ test('renumbering preserves preamble, fences, setext headings, and existing numb
   const source = [
     'Preamble', '', '# 9 Guide', 'Body', '', '## 8.4 Alpha', 'Body', '', '```md', '# untouched', '```', '', 'Beta', '----', '',
   ].join('\n');
-  const headings = [{ kind: 'heading', level: 1 }, { kind: 'heading', level: 2 }, { kind: 'heading', level: 2 }];
+  const headings = [{ level: 1, line: 2, column: 0, endLine: 3 }, { level: 2, line: 5, column: 0, endLine: 6 }, { level: 2, line: 12, column: 0, endLine: 14 }];
   assert.equal(renumberHeadings(source, headings, ['1', '1.1', '1.2']), [
     'Preamble', '', '# 1 Guide', 'Body', '', '## 1.1 Alpha', 'Body', '', '```md', '# untouched', '```', '', '1.2 Beta', '----', '',
   ].join('\n'));
@@ -33,7 +33,7 @@ test('renumbering preserves preamble, fences, setext headings, and existing numb
 
 test('renumbering closes skipped heading levels without zero components', () => {
   const source = '# Root\n\n### Deep\n\n## Sibling\n';
-  const headings = [{ kind: 'heading', level: 1 }, { kind: 'heading', level: 3 }, { kind: 'heading', level: 2 }];
+  const headings = [{ level: 1, line: 0, column: 0, endLine: 1 }, { level: 3, line: 2, column: 0, endLine: 3 }, { level: 2, line: 4, column: 0, endLine: 5 }];
   assert.equal(renumberHeadings(source, headings, ['1', '1.1', '1.2']), '# 1 Root\n\n### 1.1 Deep\n\n## 1.2 Sibling\n');
 });
 
@@ -59,7 +59,7 @@ test('section sort moves complete child sections and preserves equal-title order
   assert.equal(sortChildRanges(source, children, new Map([
     ['0', { start: source.indexOf(zebra), end: source.indexOf(zebra) + zebra.length }],
     ['1', { start: source.indexOf(alpha), end: source.indexOf(alpha) + alpha.length }],
-  ])), '# Root\n\n## Alpha\nAlpha body\n## Zebra\nZebra body\n### Child\nChild body\n\n');
+  ])), '# Root\n\n## Alpha\nAlpha body\n\n## Zebra\nZebra body\n### Child\nChild body\n');
 });
 
 test('section sorting uses bounded document calls with more than 200 siblings', async () => {

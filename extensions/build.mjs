@@ -80,7 +80,7 @@ function listBuildJobs() {
         outputPath: join(packageDir, command.script),
         banner: undefined,
         minify: true,
-        usesMarkdownIt: ['documentnode.list-to-headings', 'documentnode.renumber-headings', 'documentnode.sort-section'].includes(builtin.name),
+        usesMarkdownIt: ['documentnode.list-to-headings', 'documentnode.sort-section'].includes(builtin.name),
       });
     }
   }
