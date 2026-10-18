@@ -1,0 +1,14 @@
+{
+  "id": "documentnode.toc",
+  "name": "Table of contents",
+  "version": "1.0.0",
+  "minAppVersion": "2.2.2",
+  "description": "Adds a linked table of contents for the document headings.",
+  "author": "Document Node Pty Ltd",
+  "products": ["marknode"],
+  "permissions": ["doc.read", "doc.write"],
+  "contributes": {
+    "commands": [{ "id": "main", "title": "Add table of contents", "script": "scripts/add.js" }],
+    "menus": { "editor/slash": ["main"] }
+  }
+}

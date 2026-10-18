@@ -35,10 +35,12 @@ export type InsertPosition = 'before' | 'after' | 'into' | 'replace';
 export type OutlineNodeKind = 'heading' | 'bullet' | 'ordered';
 
 export interface OutlineViewNode {
+  anchor?: string | null;
   children: OutlineViewNode[];
   indexPath: string;
   kind: OutlineNodeKind;
   level?: number | null;
+  plainText?: string | null;
   title: string;
 }
 
@@ -80,7 +82,7 @@ export interface Doc {
   /**
    * Changes the document; needs the `doc.write` permission.
    */
-  replaceSection(node: WriteNodeHandle, markdown: string): WriteResult;
+  replaceSection(node: WriteNodeHandle | undefined, markdown: string): WriteResult;
 
   /**
    * Changes the document; needs the `doc.write` permission.

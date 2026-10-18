@@ -1,0 +1,14 @@
+{
+  "id": "documentnode.renumber-headings",
+  "name": "Renumber headings",
+  "version": "1.0.0",
+  "minAppVersion": "2.2.2",
+  "description": "Numbers every heading in document order.",
+  "author": "Document Node Pty Ltd",
+  "products": ["marknode"],
+  "permissions": ["doc.read", "doc.write"],
+  "contributes": {
+    "commands": [{ "id": "main", "title": "Renumber headings", "script": "scripts/renumber.js" }],
+    "menus": { "editor/slash": ["main"] }
+  }
+}

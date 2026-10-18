@@ -40,8 +40,11 @@ jobs:
       - name: Typecheck every extension against types/marknode.d.ts
         run: npm run typecheck
 
-      - name: Build the examples
+      - name: Build the examples and built-ins
         run: npm run build
+
+      - name: Test built-in behavior
+        run: npm test
 
       - name: Fail if a committed .js differs from its TypeScript source
         run: git diff --exit-code
