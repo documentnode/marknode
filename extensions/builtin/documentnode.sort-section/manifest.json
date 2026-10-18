@@ -1,0 +1,14 @@
+{
+  "id": "documentnode.sort-section",
+  "name": "Sort section",
+  "version": "1.0.0",
+  "minAppVersion": "2.2.2",
+  "description": "Sorts a section's immediate child nodes alphabetically.",
+  "author": "Document Node Pty Ltd",
+  "products": ["marknode"],
+  "permissions": ["doc.read", "doc.write"],
+  "contributes": {
+    "commands": [{ "id": "main", "title": "Sort section", "script": "scripts/sort.js" }],
+    "menus": { "mindmap/node": ["main"], "outline/node": ["main"] }
+  }
+}

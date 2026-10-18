@@ -14,6 +14,19 @@ import { fileURLToPath } from 'node:url';
 
 const extensionsDir = dirname(fileURLToPath(import.meta.url));
 const examplesDir = join(extensionsDir, 'examples');
+const builtinDir = join(extensionsDir, 'builtin');
+const disabledLinkifierPath = join(extensionsDir, 'builtin', 'markdown-it-no-linkifier.js');
+const markdownItLicensePaths = [
+  'markdown-it/LICENSE',
+  'entities/LICENSE',
+  'mdurl/LICENSE',
+  'uc.micro/LICENSE.txt',
+  'punycode.js/LICENSE-MIT.txt',
+];
+
+function markdownItNotice() {
+  return `/* Bundled dependencies:\n${markdownItLicensePaths.map((path) => `\n--- ${path} ---\n${readFileSync(join(extensionsDir, 'node_modules', path), 'utf8').trim()}`).join('\n')}\n*/`;
+}
 
 /** The leading `/** @marknode ... *\/` block of a one-file extension's source. */
 function readMarknodeHeader(entryPath) {
@@ -52,10 +65,29 @@ function listBuildJobs() {
       }
     }
   }
+  for (const builtin of readdirSync(builtinDir, { withFileTypes: true })) {
+    if (!builtin.isDirectory()) continue;
+    const packageDir = join(builtinDir, builtin.name);
+    const manifestPath = join(packageDir, 'manifest.json');
+    if (!existsSync(manifestPath)) continue;
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    for (const command of manifest.contributes?.commands ?? []) {
+      const scriptName = command.script.replace(/^scripts\/(.+)\.js$/, '$1');
+      const entryPath = join(packageDir, 'src', `${scriptName}.ts`);
+      if (!existsSync(entryPath)) continue;
+      jobs.push({
+        entryPath,
+        outputPath: join(packageDir, command.script),
+        banner: undefined,
+        minify: true,
+        usesMarkdownIt: ['documentnode.list-to-headings', 'documentnode.sort-section'].includes(builtin.name),
+      });
+    }
+  }
   return jobs;
 }
 
-for (const { entryPath, outputPath, banner } of listBuildJobs()) {
+for (const { entryPath, outputPath, banner, minify = false, usesMarkdownIt = false } of listBuildJobs()) {
   await build({
     entryPoints: [entryPath],
     outfile: outputPath,
@@ -64,10 +96,17 @@ for (const { entryPath, outputPath, banner } of listBuildJobs()) {
     bundle: true,
     format: 'esm',
     platform: 'neutral',
+    mainFields: ['module', 'main'],
+    plugins: usesMarkdownIt ? [{
+      name: 'disable-markdown-it-linkifier',
+      setup(build) {
+        build.onResolve({ filter: /^linkify-it$/u }, () => ({ path: disabledLinkifierPath }));
+      },
+    }] : [],
     target: 'es2022',
-    minify: false,
+    minify,
     // The header is a manifest, not a licence comment; it is written first, verbatim.
-    banner: banner === undefined ? undefined : { js: banner },
+    banner: { js: [banner, usesMarkdownIt ? markdownItNotice() : undefined].filter(Boolean).join('\n') },
     logLevel: 'warning',
   });
   console.log(`built ${relative(extensionsDir, outputPath)}`);

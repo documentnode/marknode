@@ -7,12 +7,19 @@
     "moduleResolution": "Bundler",
     "allowJs": true,
     "checkJs": true,
-    "paths": { "marknode": ["./types/marknode.d.ts"] }
+    "paths": {
+      "marknode": [
+        "./types/marknode.d.ts"
+      ]
+    }
   },
   "include": [
     "types/**/*.d.ts",
     "builtin/**/*.js",
     "builtin/**/*.ts",
     "examples/**/src/**/*.ts"
+  ],
+  "exclude": [
+    "builtin/**/scripts/*.js"
   ]
 }

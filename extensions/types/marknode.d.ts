@@ -35,15 +35,31 @@ export type InsertPosition = 'before' | 'after' | 'into' | 'replace';
 export type OutlineNodeKind = 'heading' | 'bullet' | 'ordered';
 
 export interface OutlineViewNode {
+  anchor?: string | null;
   children: OutlineViewNode[];
   indexPath: string;
   kind: OutlineNodeKind;
   level?: number | null;
+  plainText?: string | null;
   title: string;
+}
+
+/** All rendered headings in source order, including headings inside lists, quotes and footnotes that are not individually addressable outline nodes. */
+export interface RenderedHeading {
+  anchor: string;
+  /** Zero-based UTF-16 column of the heading start in its original source line. */
+  column: number;
+  /** Exclusive source end line, including a setext underline when present. */
+  endLine: number;
+  level: number;
+  /** Zero-based source start line. */
+  line: number;
+  plainText: string;
 }
 
 /** The result of `doc.outline`. */
 export interface OutlineResult {
+  headings: RenderedHeading[];
   nodes: OutlineViewNode[];
   version: string;
 }
@@ -80,7 +96,7 @@ export interface Doc {
   /**
    * Changes the document; needs the `doc.write` permission.
    */
-  replaceSection(node: WriteNodeHandle, markdown: string): WriteResult;
+  replaceSection(node: WriteNodeHandle | undefined, markdown: string): WriteResult;
 
   /**
    * Changes the document; needs the `doc.write` permission.

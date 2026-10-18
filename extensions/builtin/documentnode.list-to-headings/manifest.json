@@ -1,0 +1,14 @@
+{
+  "id": "documentnode.list-to-headings",
+  "name": "Convert list to headings",
+  "version": "1.0.0",
+  "minAppVersion": "2.2.2",
+  "description": "Converts a list and its nested items into headings.",
+  "author": "Document Node Pty Ltd",
+  "products": ["marknode"],
+  "permissions": ["doc.read", "doc.write"],
+  "contributes": {
+    "commands": [{ "id": "main", "title": "Convert list to headings", "script": "scripts/convert.js" }],
+    "menus": { "editor/slash": ["main"], "mindmap/node": ["main"], "outline/node": ["main"] }
+  }
+}
