@@ -154,6 +154,7 @@ export type ErrorCode =
   | 'stale'
   | 'out-of-scope'
   | 'unavailable'
+  | 'outcome-unknown'
   | 'too-large'
   | 'internal'
   | 'cancelled';
