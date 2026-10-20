@@ -224,10 +224,12 @@ A run longer than 300 ms shows a "Running *command*…" status with **Cancel**.
 ## Undo and failure
 
 A run is all or nothing. If it succeeds and changed the document, exactly one undo step is added,
-however many `doc.*` calls it made. If it stops early for any reason (limit, error, crash,
-cancel, a conflicting edit), the document is unchanged. If the user edited the part of the
-document the run changes while it ran, the run fails with `conflict`; the failure notice offers
-**Run Again** when the command was started on a node.
+however many `doc.*` calls it made. If it stops before its edit is committed (limit, error,
+crash, cancel, a conflicting edit), the document is unchanged. If the edit was sent but MarkNode
+could not confirm whether it was applied, the run fails with `outcome-unknown`: the edit may or
+may not be in the document, so check it before running the command again. If the user edited
+the part of the document the run changes while it ran, the run fails with `conflict`; the
+failure notice offers **Run Again** when the command was started on a node.
 
 ## Error codes
 
@@ -235,7 +237,7 @@ Errors thrown by a `doc.*` or `ui.*` call carry one of these `code`s (the `Error
 `types/marknode.d.ts`):
 
 `invalid`, `not-found`, `ambiguous`, `conflict`, `stale`, `out-of-scope`, `unavailable`,
-`too-large`, `internal`, `cancelled`.
+`outcome-unknown`, `too-large`, `internal`, `cancelled`.
 
 A run that fails shows one of these codes (with the message, and for `script-error` the file,
 line and column) under **Details**: the codes above, plus `limit-time`, `limit-memory`,
