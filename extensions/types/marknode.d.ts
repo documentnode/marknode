@@ -154,6 +154,7 @@ export type ErrorCode =
   | 'stale'
   | 'out-of-scope'
   | 'unavailable'
+  | 'file-open-in-app'
   | 'outcome-unknown'
   | 'too-large'
   | 'internal'
