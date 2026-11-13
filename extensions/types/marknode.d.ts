@@ -29,6 +29,47 @@ export type WriteNodeHandle =
   | (TitlePathRef & { version: string })
   | Target;
 
+/** The capture groups of one regex match; a group that did not take part is the empty string. */
+export interface FindGroups {
+  /** Index 0 is the whole match, index `n` is group `n`. */
+  byIndex: string[];
+  byName: Record<string, string>;
+}
+
+/** One occurrence of the query. */
+export interface FindMatch {
+  /** Up to 40 UTF-16 code units of the same line after the match. */
+  after: string;
+  /** Up to 40 UTF-16 code units of the same line before the match. */
+  before: string;
+  /** The capture groups of a regex search; absent otherwise. */
+  groups?: FindGroups | null;
+  /** The index path of the innermost node whose section contains the match; null before the first node. */
+  node: string | null;
+  range: TextRange;
+  /** The whole matched text. */
+  text: string;
+}
+
+/** How `find` searches: the options of Find in Files, plus the part of the document to search. */
+export interface FindOptions {
+  /** Match letter case exactly. False when absent. */
+  caseSensitive?: boolean;
+  /** The most matches to return, 1 to 1000; 1000 when absent. */
+  limit?: number | null;
+  /** Search only this node's section; the whole document when absent. */
+  node?: NodeHandle;
+  /** Treat the query as a regular expression (the Rust `regex` syntax). False when absent. */
+  regex?: boolean;
+  /** `code` leaves out everything a reader does not see as prose (code, math, frontmatter, HTML, link destinations); nothing is left out when absent. */
+  skip?: FindSkip | null;
+  /** Match only whole words. False when absent. */
+  wholeWord?: boolean;
+}
+
+/** What `find` leaves out of its search. */
+export type FindSkip = 'code';
+
 export type InsertPosition = 'before' | 'after' | 'into' | 'replace';
 
 /** The only outline node kinds exposed by the document-operations contract. */
@@ -95,6 +136,15 @@ export interface WriteResult {
   version: string;
 }
 
+/** The result of `doc.find`. */
+export interface FindResult {
+  matches: FindMatch[];
+  /** True when there were more than `limit` matches and only the first `limit` are returned. */
+  truncated: boolean;
+  /** The version of exactly the text searched; every match's range carries it. */
+  version: string;
+}
+
 /** The result of `doc.replaceText`. */
 export interface ReplaceTextResult {
   ranges: TextRange[];
@@ -129,6 +179,12 @@ export interface Doc {
    * @param values Values for the template's user fields, by field name.
    */
   applyTemplate(node: WriteNodeHandle, name: string, values: Record<string, string> | undefined, position: InsertPosition): WriteResult;
+
+  /**
+   * Reads the document; needs the `doc.read` permission.
+   * @param query The text to search for: a literal, or a regular expression when `options.regex` is set. At most 1,024 bytes; empty or whitespace-only is refused.
+   */
+  find(query: string, options?: FindOptions): FindResult;
 
   /**
    * Changes the document; needs the `doc.write` permission.
