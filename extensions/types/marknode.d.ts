@@ -207,6 +207,25 @@ export interface PromptField {
 /** One row of a `ui.pick` list: its label, or a label with a detail line. */
 export type PickItem = string | { label: string; detail?: string };
 
+/** One proposed change of a `ui.review` list. */
+export interface ReviewItem {
+  /** The text to replace, as returned by `doc.find` or `doc.replaceText` in this run; all items share one version. */
+  range: TextRange;
+  /** The proposed text; `''` proposes a deletion. */
+  replacement: string;
+  label?: string;
+  detail?: string;
+  /** `true` unless given. */
+  checked?: boolean;
+}
+
+/** `title` is cut to 80, `applyLabel` to 40 and `note` to 200 characters. */
+export interface ReviewOptions {
+  title?: string;
+  applyLabel?: string;
+  note?: string;
+}
+
 /** User interface calls. A dismissed dialog returns `null`. */
 export interface Ui {
   /** Shows a form and returns the answers by field name. */
@@ -214,6 +233,8 @@ export interface Ui {
   /** Shows a list and returns the chosen item exactly as passed. */
   pick<T extends PickItem>(items: readonly T[]): T | null;
   toast(message: string): void;
+  /** Shows proposed changes to tick; returns the accepted items exactly as passed, in document order, or `null`. */
+  review<T extends ReviewItem>(items: readonly T[], options?: ReviewOptions): T[] | null;
 }
 
 /** What a command receives. */
