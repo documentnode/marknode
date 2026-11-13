@@ -164,6 +164,7 @@ path came from; a bare `{ indexPath }` is refused with `invalid`. The types enfo
 |---|---|---|
 | `doc.outline()` | `doc.read` | Returns the outline tree and the document `version` |
 | `doc.readSection(node?)` | `doc.read` | Returns a section's Markdown and `version` |
+| `doc.find(query, options?)` | `doc.read` | Returns every occurrence of a literal or regex search (Rust `regex` syntax, not JS `RegExp`; `regex`, `caseSensitive`, `wholeWord`, as in Find in Files), in the document or one `node`'s section, with its text range, the matched text, up to 40 UTF-16 code units (JS string length) of the same line on each side, and its node. `skip: 'code'` searches only prose; `limit` (1 to 1000, default 1000) caps the matches and sets `truncated` |
 | `doc.insert(node, position, markdown)` | `doc.write` | Inserts Markdown `before`, `after`, `into` or in place of (`replace`) a node |
 | `doc.replaceSection(node, markdown)` | `doc.write` | Replaces a section |
 | `doc.applyTemplate(node, name, values, position)` | `doc.write` | Applies one of the user's templates by name |
