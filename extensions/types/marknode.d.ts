@@ -57,6 +57,25 @@ export interface RenderedHeading {
   plainText: string;
 }
 
+/** One replacement of `replaceText`: the text of `range` becomes `text`. */
+export interface ReplaceTextEdit {
+  range: TextRange;
+  text: string;
+}
+
+/** A position in a document's text: a zero-based line and a zero-based UTF-16 column within that line's content. */
+export interface TextPosition {
+  column: number;
+  line: number;
+}
+
+/** A range of a document's text, tied to the version it was read from. */
+export interface TextRange {
+  end: TextPosition;
+  start: TextPosition;
+  version: string;
+}
+
 /** The result of `doc.outline`. */
 export interface OutlineResult {
   headings: RenderedHeading[];
@@ -73,6 +92,12 @@ export interface ReadSectionResult {
 /** The result of `doc.insert`. */
 export interface WriteResult {
   indexPath?: string | null;
+  version: string;
+}
+
+/** The result of `doc.replaceText`. */
+export interface ReplaceTextResult {
+  ranges: TextRange[];
   version: string;
 }
 
@@ -104,6 +129,12 @@ export interface Doc {
    * @param values Values for the template's user fields, by field name.
    */
   applyTemplate(node: WriteNodeHandle, name: string, values: Record<string, string> | undefined, position: InsertPosition): WriteResult;
+
+  /**
+   * Changes the document; needs the `doc.write` permission.
+   * @param edits The text ranges to replace, all read from one version, without overlap.
+   */
+  replaceText(edits: ReplaceTextEdit[]): ReplaceTextResult;
 }
 
 /** One field of a `ui.prompt` form. */
