@@ -253,7 +253,7 @@ export interface Extension {
   readonly version: string;
   /** The text of `data/<path>`. */
   readData(path: string): string;
-  /** The rows of the `index`-th (default first) table of the Markdown file `data/<path>`, keyed by header text in header order; `too-large` when its rows would not fit in the 4 MiB reply. */
+  /** The rows of the `index`-th (default first) table of the Markdown file `data/<path>`, keyed by header text in header order, except that headers that are whole numbers come first, as JavaScript orders them; `too-large` when its rows would not fit in the 4 MiB reply or the table is too large to parse. */
   readTable(path: string, index?: number): Record<string, string>[];
 }
 
