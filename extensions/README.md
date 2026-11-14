@@ -64,8 +64,8 @@ named `hello-world.js`.
 
 ### Package
 
-A folder with a `manifest.json` and the files it names. Use a package for more than one command, or
-to add templates, mind map themes or preview styles.
+A folder with a `manifest.json`, the files it names, and any data files in `data/`. Use a package for
+more than one command, or to add templates, mind map themes, preview styles or data files.
 
 ```jsonc
 {
@@ -111,7 +111,8 @@ Rules:
   missing is not installed (import) or is listed with the reason and disabled (folder).
 - File paths are relative, use `/`, contain no `.`, `..`, empty or absolute segment, and lie in the
   folder for their kind: `scripts/` (`.js`), `templates/` (`.md`), `themes/` (`.json`),
-  `styles/` (`.css`). Files must be valid UTF-8 text.
+  `styles/` (`.css`), `data/` (`.md`, `.json`, `.txt`). Files must be valid UTF-8 text. A file in
+  `data/` needs no manifest entry; a script reads it with `extension.readData` and `extension.readTable`.
 - A package is at most 256 KiB, measured in `.mnext` form (below).
 
 The [`section-tools`](examples/section-tools/) example is a complete package. To try it, copy the
@@ -120,7 +121,7 @@ folder into your extensions folder as `example.section-tools` (its `id`); `src/`
 ## The script
 
 A script is an ES module, one self-contained file per command, whose default export is an `async`
-function receiving a single object `{ doc, target, ui, selection }`:
+function receiving a single object `{ doc, target, ui, selection, extension }`:
 
 ```js
 export default async function ({ doc, target, ui }) {
@@ -133,7 +134,7 @@ export default async function ({ doc, target, ui }) {
   `script-error` ("Imports are not supported; bundle the script into one file"). Write the whole
   command in one file or [bundle it](#using-typescript). `import type` is fine in TypeScript
   because the compiler erases it.
-- **Calls are synchronous.** `doc.*` and `ui.*` return their value directly; the script is paused
+- **Calls are synchronous.** `doc.*`, `ui.*` and `extension.*` return their value directly; the script is paused
   while MarkNode answers. `await` on a value still works, so `async function` is fine.
 - **`target`** is the node the command was invoked on from a mind map or outline node menu, as
   `{ node, version }`; it is `null` from the `/` menu and **Run Extension Command…**, where the
@@ -143,11 +144,11 @@ export default async function ({ doc, target, ui }) {
   for a cursor, `null` above 1 MiB). From the `/` menu it is the cursor where the `/` was typed. It
   is `null` without the `doc.read` permission, when no editor shows the document, and in Preview
   only.
-- **Errors** thrown by a `doc.*` or `ui.*` call are `Error`s with a string `code` property
+- **Errors** thrown by a `doc.*`, `ui.*` or `extension.*` call are `Error`s with a string `code` property
   (see [Error codes](#error-codes)). They can be caught; an uncaught error ends the run and the
   document is left unchanged.
 - A script reading the document after writing it in the same run sees its own writes.
-- A script has no access to files, the network, the clipboard, timers beyond its run, other
+- A script has no access to files other than its own extension's data files, the network, the clipboard, timers beyond its run, other
   documents, other extensions, or the app's settings.
 - Scripts are plain JavaScript source text. TypeScript is supported only by compiling to JavaScript
   yourself.
@@ -189,6 +190,17 @@ permission by `applyTemplate`.
 
 Invalid arguments throw an error with code `invalid`.
 
+**`extension`** — the running extension and the files of its `data/` folder; always available, no
+permission, and the calls are not counted as operation calls:
+
+| Member | Does |
+|---|---|
+| `extension.id`, `extension.version` | The extension's id and version |
+| `extension.readData(path)` | Returns the text of `data/<path>`. `not-found` when the package has no such file, `invalid` when `path` is not a valid package path |
+| `extension.readTable(path, index?)` | Returns the rows of the `index`-th (default first) GFM table in the Markdown file `data/<path>` as objects keyed by the header cells' plain text, in header order; cell values are plain text (inline Markdown removed, an escaped pipe becomes `|`). A key is trimmed; an empty header is `column<N>` (its 1-based position); a repeated header gets `_2`, `_3`, … `not-found` when the file or the table does not exist, `invalid` for a file that is not `.md` or an index that is not a non-negative integer, `too-large` when the rows would not fit in a 4 MiB reply or the table is too large to parse (split it across files) |
+
+A script reads the package the run started with; a data file you save while MarkNode runs is seen by the next run.
+
 ## Permissions and approval
 
 | Permission | Lets the script |
@@ -221,7 +233,7 @@ document is unchanged.
 |---|---|
 | Script time | 5 s (time waiting in `ui.prompt`, `ui.pick` or `ui.review` is not counted) |
 | Script memory | 64 MiB |
-| Operation calls (`doc.*`) | 200 per run |
+| Operation calls (`doc.*`) | 200 per run (`extension.*` reads are not counted) |
 | Markdown inserted | 1 MiB in total per run |
 | Package size | 256 KiB |
 | `ui.prompt` fields | 20 |
@@ -242,7 +254,7 @@ failure notice offers **Run Again** when the command was started on a node.
 
 ## Error codes
 
-Errors thrown by a `doc.*` or `ui.*` call carry one of these `code`s (the `ErrorCode` type in
+Errors thrown by a `doc.*`, `ui.*` or `extension.*` call carry one of these `code`s (the `ErrorCode` type in
 `types/marknode.d.ts`):
 
 `invalid`, `not-found`, `ambiguous`, `conflict`, `stale`, `out-of-scope`, `unavailable`,
