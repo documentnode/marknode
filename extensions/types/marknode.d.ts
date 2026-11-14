@@ -243,6 +243,8 @@ export interface Ui {
   toast(message: string): void;
   /** Shows proposed changes to tick; returns the accepted items exactly as passed, in document order, or `null`. */
   review<T extends ReviewItem>(items: readonly T[], options?: ReviewOptions): T[] | null;
+  /** Records where the selection goes when the run ends; a later call replaces an earlier one. */
+  select(range: TextRange): void;
 }
 
 /** What a command receives. */
