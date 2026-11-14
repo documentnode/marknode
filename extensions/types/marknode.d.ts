@@ -209,7 +209,7 @@ export type PickItem = string | { label: string; detail?: string };
 
 /** One proposed change of a `ui.review` list. */
 export interface ReviewItem {
-  /** The text to replace, as returned by `doc.find` or `doc.replaceText` in this run; all items share one version. */
+  /** The text to replace, for example a `doc.find` match's `range`; text this run has not changed. All items share one version. */
   range: TextRange;
   /** The proposed text; `''` proposes a deletion. */
   replacement: string;
