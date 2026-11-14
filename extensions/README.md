@@ -178,6 +178,7 @@ permission by `applyTemplate`.
 |---|---|
 | `ui.prompt(fields)` | Shows a form and returns the answers by field name, or `null` if dismissed. 1 to 20 fields `{ name, label?, type?, default?, choices? }`; `name`s are unique and non-empty; `type` is `text` (default), `multiline`, `choice` (needs non-empty `choices`) or `date` |
 | `ui.pick(items)` | Shows a filterable list of 1 to 200 strings or `{ label, detail? }` objects and returns the chosen item exactly as passed, or `null` if dismissed |
+| `ui.review(items, options?)` | Shows proposed changes in the Find panel, grouped by heading, for the user to untick, and returns the accepted items exactly as passed, in document order, or `null` if cancelled. 1 to 1000 `{ range, replacement, label?, detail?, checked? }`, each `range` a text range from this run (for example a `doc.find` match's `range`) and all of one version; `replacement` is the proposed text (`''` proposes a deletion); `checked` is `true` unless `false`. `options` is `{ title?, applyLabel?, note? }`, cut to 80, 40 and 200 characters. The user can keep typing while the list is open, and only one command can run while it is; a range that overlaps another or covers text the run already changed is refused with `invalid`. The script then applies the accepted items itself, for example with `doc.replaceText` |
 | `ui.toast(message)` | Shows a short informational message (truncated to 200 characters) and returns at once |
 
 Invalid arguments throw an error with code `invalid`.
@@ -212,13 +213,14 @@ document is unchanged.
 
 | Limit | Value |
 |---|---|
-| Script time | 5 s (time waiting in `ui.prompt` or `ui.pick` is not counted) |
+| Script time | 5 s (time waiting in `ui.prompt`, `ui.pick` or `ui.review` is not counted) |
 | Script memory | 64 MiB |
 | Operation calls (`doc.*`) | 200 per run |
 | Markdown inserted | 1 MiB in total per run |
 | Package size | 256 KiB |
 | `ui.prompt` fields | 20 |
 | `ui.pick` items | 200 |
+| `ui.review` items | 1000 |
 
 A run longer than 300 ms shows a "Running *command*…" status with **Cancel**.
 
