@@ -120,7 +120,7 @@ folder into your extensions folder as `example.section-tools` (its `id`); `src/`
 ## The script
 
 A script is an ES module, one self-contained file per command, whose default export is an `async`
-function receiving a single object `{ doc, target, ui }`:
+function receiving a single object `{ doc, target, ui, selection }`:
 
 ```js
 export default async function ({ doc, target, ui }) {
@@ -138,6 +138,11 @@ export default async function ({ doc, target, ui }) {
 - **`target`** is the node the command was invoked on from a mind map or outline node menu, as
   `{ node, version }`; it is `null` from the `/` menu and **Run Extension Command…**, where the
   script addresses nodes itself (`ui.pick` can ask the user to choose one).
+- **`selection`** is the editor's main selection when the command started, as `{ range, text }`:
+  `range` is a text range of the document as the run first sees it, `text` the selected text (empty
+  for a cursor, `null` above 1 MiB). From the `/` menu it is the cursor where the `/` was typed. It
+  is `null` without the `doc.read` permission, when no editor shows the document, and in Preview
+  only.
 - **Errors** thrown by a `doc.*` or `ui.*` call are `Error`s with a string `code` property
   (see [Error codes](#error-codes)). They can be caught; an uncaught error ends the run and the
   document is left unchanged.
