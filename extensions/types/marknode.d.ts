@@ -226,6 +226,14 @@ export interface ReviewOptions {
   note?: string;
 }
 
+/** The selection the command was invoked with: the editor's main selection (its cursor when empty). */
+export interface Selection {
+  /** A range of the run's first version; a cursor has equal ends. */
+  range: TextRange;
+  /** The selected text: empty for a cursor, `null` when it is longer than 1 MiB. */
+  text: string | null;
+}
+
 /** User interface calls. A dismissed dialog returns `null`. */
 export interface Ui {
   /** Shows a form and returns the answers by field name. */
@@ -243,6 +251,8 @@ export interface Context {
   /** The node the command was invoked on, if any. */
   target: Target | null;
   ui: Ui;
+  /** The editor's main selection; `null` without `doc.read`, when no editor shows the document, or in Preview only. */
+  selection: Selection | null;
 }
 
 /** The default export of a command script. */
