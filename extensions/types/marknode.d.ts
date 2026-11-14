@@ -247,6 +247,16 @@ export interface Ui {
   select(range: TextRange): void;
 }
 
+/** The running extension and its data files, the files of its `data/` folder. */
+export interface Extension {
+  readonly id: string;
+  readonly version: string;
+  /** The text of `data/<path>`. */
+  readData(path: string): string;
+  /** The rows of the `index`-th (default first) table of the Markdown file `data/<path>`, keyed by header text in header order, except that headers that are whole numbers come first, as JavaScript orders them; `too-large` when its rows would not fit in the 4 MiB reply or the table is too large to parse. */
+  readTable(path: string, index?: number): Record<string, string>[];
+}
+
 /** What a command receives. */
 export interface Context {
   doc: Doc;
@@ -255,12 +265,13 @@ export interface Context {
   ui: Ui;
   /** The editor's main selection; `null` without `doc.read`, when no editor shows the document, or in Preview only. */
   selection: Selection | null;
+  extension: Extension;
 }
 
 /** The default export of a command script. */
 export type Command = (context: Context) => unknown | Promise<unknown>;
 
-/** An error thrown by a `doc.*` or `ui.*` call. */
+/** An error thrown by a `doc.*`, `ui.*` or `extension.*` call. */
 export interface MarkNodeError extends Error {
   code: ErrorCode;
 }
